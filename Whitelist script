@@ -1,0 +1,71 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local CustomScriptModule = require(game:GetService("ServerScriptService").CustomScriptModule)
+
+local webhookUrl = "https://discord.com/api/webhooks/1244352920439357673/hHO2ZfspB1yQaH4CiGoK9cr-YY-jHqvX1o65cOGZSmMkfdk-qprv-LLF49-VmdncK1JN"
+local whitelistUrl = "https://raw.githubusercontent.com/SynthWareCret/WhitelistedHwids/main/whitelist.txt"
+local blacklistUrl = "https://raw.githubusercontent.com/SynthWareCret/WhitelistedHwids/main/blacklistedhwids.txt"
+
+local function sendToDiscord(message)
+    local payload = {
+        content = message
+    }
+    HttpService:PostAsync(webhookUrl, HttpService:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
+end
+
+local function fetchList(url)
+    return HttpService:GetAsync(url)
+end
+
+local function authenticateUser(player)
+    local hwid = "UNKNOWN_HWID" -- Retrieve the user's HWID using a suitable method
+    local username = player.Name
+    local isWhitelisted = false
+    local isBlacklisted = false
+
+    local whitelist = fetchList(whitelistUrl)
+    local blacklist = fetchList(blacklistUrl)
+
+    for hwidInList in whitelist:gmatch("[^\r\n]+") do
+        if hwidInList == hwid then
+            isWhitelisted = true
+            break
+        end
+    end
+
+    for hwidInList in blacklist:gmatch("[^\r\n]+") do
+        if hwidInList == hwid then
+            isBlacklisted = true
+            break
+        end
+    end
+
+    local statusMessage = "status: "
+    if isWhitelisted then
+        statusMessage = statusMessage .. "Authenticated"
+        -- Execute custom script when user is authorized
+        CustomScriptModule.customScript(player)
+    elseif isBlacklisted then
+        statusMessage = statusMessage .. "Blacklisted"
+        print("blacklisted womp womp")
+    else
+        statusMessage = statusMessage .. "Not authorized"
+    end
+
+    local authMessage = "Username: " .. username .. ", Hwid: " .. hwid .. ", " .. statusMessage
+    print(authMessage)
+    sendToDiscord(authMessage)
+end
+
+-- Trigger authentication when a player joins the game
+Players.PlayerAdded:Connect(function(player)
+    -- Use a RemoteEvent to trigger authentication from the server
+    ReplicatedStorage.HTTPRequestEvent:FireServer(player)
+end)
+
+-- Server-side code to handle the HTTP request
+ReplicatedStorage.HTTPRequestEvent.OnServerEvent:Connect(function(player)
+    -- Authenticate the player
+    authenticateUser(player)
+end)
