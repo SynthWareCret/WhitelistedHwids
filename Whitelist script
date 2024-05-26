@@ -1,7 +1,5 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local CustomScriptModule = require(game:GetService("ServerScriptService").CustomScriptModule)
 
 local webhookUrl = "https://discord.com/api/webhooks/1244352920439357673/hHO2ZfspB1yQaH4CiGoK9cr-YY-jHqvX1o65cOGZSmMkfdk-qprv-LLF49-VmdncK1JN"
 local whitelistUrl = "https://raw.githubusercontent.com/SynthWareCret/WhitelistedHwids/main/whitelist.txt"
@@ -44,28 +42,23 @@ local function authenticateUser(player)
     local statusMessage = "status: "
     if isWhitelisted then
         statusMessage = statusMessage .. "Authenticated"
-        -- Execute custom script when user is authorized
-        CustomScriptModule.customScript(player)
+        print("User authenticated, Authentication info sent to discord")
+        sendToDiscord("User authenticated, Hwid: " .. hwid .. ", Username: " .. username)
     elseif isBlacklisted then
         statusMessage = statusMessage .. "Blacklisted"
-        print("blacklisted womp womp")
+        print("Blacklisted user, info sent to discord")
+        sendToDiscord("Blacklisted user, Hwid: " .. hwid .. ", Username: " .. username)
     else
         statusMessage = statusMessage .. "Not authorized"
+        print("User not authorized")
     end
 
     local authMessage = "Username: " .. username .. ", Hwid: " .. hwid .. ", " .. statusMessage
     print(authMessage)
-    sendToDiscord(authMessage)
 end
 
 -- Trigger authentication when a player joins the game
 Players.PlayerAdded:Connect(function(player)
-    -- Use a RemoteEvent to trigger authentication from the server
-    ReplicatedStorage.HTTPRequestEvent:FireServer(player)
-end)
-
--- Server-side code to handle the HTTP request
-ReplicatedStorage.HTTPRequestEvent.OnServerEvent:Connect(function(player)
     -- Authenticate the player
     authenticateUser(player)
 end)
