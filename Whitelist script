@@ -1,5 +1,6 @@
-local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local webhookUrl = "https://discord.com/api/webhooks/1244352920439357673/hHO2ZfspB1yQaH4CiGoK9cr-YY-jHqvX1o65cOGZSmMkfdk-qprv-LLF49-VmdncK1JN"
 local whitelistUrl = "https://raw.githubusercontent.com/SynthWareCret/WhitelistedHwids/main/whitelist.txt"
@@ -22,17 +23,20 @@ local function authenticateUser(player)
     local isWhitelisted = false
     local isBlacklisted = false
 
-    local whitelist = fetchList(whitelistUrl)
-    local blacklist = fetchList(blacklistUrl)
+    local whitelistData = fetchList(whitelistUrl)
+    local blacklistData = fetchList(blacklistUrl)
 
-    for hwidInList in whitelist:gmatch("[^\r\n]+") do
+    local whitelist = whitelistData:split("\n")
+    local blacklist = blacklistData:split("\n")
+
+    for _, hwidInList in ipairs(whitelist) do
         if hwidInList == hwid then
             isWhitelisted = true
             break
         end
     end
 
-    for hwidInList in blacklist:gmatch("[^\r\n]+") do
+    for _, hwidInList in ipairs(blacklist) do
         if hwidInList == hwid then
             isBlacklisted = true
             break
@@ -61,4 +65,10 @@ end
 Players.PlayerAdded:Connect(function(player)
     -- Authenticate the player
     authenticateUser(player)
+end)
+
+-- Trigger authentication when a player joins the game
+game.Players.PlayerAdded:Connect(function(player)
+    -- Use a RemoteEvent to trigger authentication from the server
+    ReplicatedStorage.HTTPRequestEvent:FireServer(player)
 end)
